@@ -1,0 +1,144 @@
+/*1.Consulta para encontrar produtos que são vendidos abaixo do preço médio de todos os itens vendidos*/
+SELECT 
+    p.product_id,
+    p.product_name,
+    p.price,
+    (SELECT AVG(oi.unit_price)
+     FROM OrderItems oi) AS avg_unit_price
+FROM Products p
+WHERE p.price < (SELECT AVG(oi.unit_price) FROM OrderItems oi)
+ORDER BY p.price ASC;
+
+-- 2.Consulta para encontrar clientes que fizeram mais pedidos do que a média de pedidos por cliente
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    (SELECT COUNT(*) 
+     FROM Orders o 
+     WHERE o.customer_id = c.customer_id) AS total_orders
+FROM Customers c
+WHERE (SELECT COUNT(*) FROM Orders o WHERE o.customer_id = c.customer_id) > (
+   
+    SELECT AVG(total_orders_per_customer)
+    FROM (SELECT COUNT(*) AS total_orders_per_customer FROM Orders GROUP BY customer_id) AS subquery
+)
+ORDER BY total_orders DESC;
+
+/*3.Consulta para encontrar clientes que compraram produtos com preço acima de $100*/
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name
+FROM Customers c
+WHERE c.customer_id IN (
+   
+    SELECT o.customer_id 
+    FROM Orders o
+    JOIN OrderItems oi ON o.order_id = oi.order_id
+    WHERE oi.unit_price > 100
+)
+ORDER BY c.customer_id;
+
+-- 4.Consulta para listar clientes e o total de pedidos de cada cliente usando subconsulta escalar
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    (SELECT COUNT(*) 
+     FROM Orders o 
+     WHERE o.customer_id = c.customer_id) AS total_orders
+FROM Customers c
+ORDER BY total_orders DESC;
+
+/*5.Consulta para encontrar pedidos com valor acima da média dos pedidos de cada cliente*/
+SELECT 
+    o.order_id,
+    o.customer_id,
+    o.total_amount,
+    o.order_date
+FROM Orders o
+WHERE o.total_amount > (
+    
+    SELECT AVG(total_amount)
+    FROM Orders o2
+    WHERE o2.customer_id = o.customer_id
+)
+ORDER BY o.total_amount DESC;
+
+-- 6.Consulta para encontrar produtos com vendas totais acima da média de todos os produtos
+SELECT 
+    p.product_name,
+    SUM(oi.total_price) AS total_sales
+FROM Products p
+JOIN OrderItems oi ON p.product_id = oi.product_id
+GROUP BY p.product_name
+HAVING SUM(oi.total_price) > (
+   
+    SELECT AVG(total_sales_per_product)
+    FROM (
+        SELECT SUM(oi2.total_price) AS total_sales_per_product
+        FROM OrderItems oi2
+        GROUP BY oi2.product_id
+    ) AS subquery
+)
+ORDER BY total_sales DESC;
+
+/*7.-- Consulta para encontrar clientes que fizeram pedidos com mais de 5 itens*/
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name
+FROM Customers c
+WHERE EXISTS (
+  
+    SELECT 1
+    FROM Orders o
+    JOIN OrderItems oi ON o.order_id = oi.order_id
+    WHERE o.customer_id = c.customer_id
+    GROUP BY o.order_id
+    HAVING COUNT(oi.order_item_id) > 5
+ORDER BY c.customer_id;
+
+-- 8.Consulta para encontrar produtos que nunca foram vendidos
+SELECT 
+    p.product_id,
+    p.product_name
+FROM Products p
+WHERE NOT EXISTS (
+   
+    SELECT 1
+    FROM OrderItems oi
+    WHERE oi.product_id = p.product_id
+)
+ORDER BY p.product_id;
+
+/* 9.Consulta para encontrar o maior pedido de cada cliente*/
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    (SELECT MAX(o.total_amount)
+     FROM Orders o
+     WHERE o.customer_id = c.customer_id) AS largest_order
+FROM Customers c
+ORDER BY largest_order DESC;
+
+-- 10.Consulta para encontrar produtos com quantidade de vendas acima da média
+SELECT 
+    p.product_id,
+    p.product_name,
+    SUM(oi.quantity) AS total_quantity
+FROM Products p
+JOIN OrderItems oi ON p.product_id = oi.product_id
+GROUP BY p.product_id, p.product_name
+HAVING SUM(oi.quantity) > (
+   
+    SELECT AVG(total_quantity)
+    FROM (
+        SELECT SUM(oi2.quantity) AS total_quantity
+        FROM OrderItems oi2
+        GROUP BY oi2.product_id
+    ) AS subquery
+)
+ORDER BY total_quantity DESC;
