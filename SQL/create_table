@@ -1,1 +1,78 @@
+-- Criação da tabela de Clientes
+CREATE TABLE Customers (
+    customer_id INT PRIMARY KEY AUTO_INCREMENT,  -- ID único do cliente (Chave Primária)
+    first_name VARCHAR(50) NOT NULL,              -- Nome do cliente
+    last_name VARCHAR(50) NOT NULL,               -- Sobrenome do cliente
+    email VARCHAR(100) UNIQUE NOT NULL,           -- Email único do cliente
+    phone_number VARCHAR(20),                     -- Número de telefone
+    address VARCHAR(255),                         -- Endereço do cliente
+    city VARCHAR(100),                            -- Cidade
+    state VARCHAR(50),                            -- Estado
+    country VARCHAR(50),                          -- País
+    postal_code VARCHAR(10),                      -- Código postal
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Data de criação do registro
+);
 
+-- Criação da tabela de Produtos
+CREATE TABLE Products (
+    product_id INT PRIMARY KEY AUTO_INCREMENT,  -- ID único do produto (Chave Primária)
+    product_name VARCHAR(100) NOT NULL,         -- Nome do produto
+    product_description TEXT,                   -- Descrição do produto
+    price DECIMAL(10, 2) NOT NULL,              -- Preço do produto
+    stock_quantity INT NOT NULL DEFAULT 0,      -- Quantidade em estoque
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Data de criação do registro
+);
+
+-- Criação da tabela de Pedidos
+CREATE TABLE Orders (
+    order_id INT PRIMARY KEY AUTO_INCREMENT,  -- ID único do pedido (Chave Primária)
+    customer_id INT NOT NULL,                 -- Chave estrangeira para a tabela Customers
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Data do pedido
+    total_amount DECIMAL(10, 2) NOT NULL,     -- Valor total do pedido
+    status VARCHAR(50) NOT NULL DEFAULT 'Pending', -- Status do pedido (ex: Pending, Shipped, Completed)
+    shipping_address VARCHAR(255),            -- Endereço de entrega
+    shipping_city VARCHAR(100),               -- Cidade de entrega
+    shipping_state VARCHAR(50),               -- Estado de entrega
+    shipping_country VARCHAR(50),             -- País de entrega
+    shipping_postal_code VARCHAR(10),         -- Código postal de entrega
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Data de criação do registro
+    CONSTRAINT fk_customer FOREIGN KEY (customer_id) -- Relação com a tabela Customers
+        REFERENCES Customers(customer_id) 
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- Criação da tabela de Itens do Pedido
+CREATE TABLE OrderItems (
+    order_item_id INT PRIMARY KEY AUTO_INCREMENT,  -- ID único do item do pedido (Chave Primária)
+    order_id INT NOT NULL,                         -- Chave estrangeira para a tabela Orders
+    product_id INT NOT NULL,                       -- Chave estrangeira para a tabela Products
+    quantity INT NOT NULL,                         -- Quantidade do produto no pedido
+    unit_price DECIMAL(10, 2) NOT NULL,            -- Preço unitário do produto no pedido
+    total_price AS (quantity * unit_price) STORED, -- Preço total calculado automaticamente
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Data de criação do registro
+    CONSTRAINT fk_order FOREIGN KEY (order_id)     -- Relação com a tabela Orders
+        REFERENCES Orders(order_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_product FOREIGN KEY (product_id) -- Relação com a tabela Products
+        REFERENCES Products(product_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+/*Explicação das Tabelas Criadas
+Customers (Clientes): Armazena os dados dos clientes, como nome, email, telefone, endereço e a data de criação do registro.
+Products (Produtos): Contém informações sobre os produtos à venda, como nome, descrição, preço e quantidade em estoque.
+Orders (Pedidos): Registra os pedidos feitos pelos clientes, incluindo a referência ao cliente (customer_id), o valor total do pedido e o status.
+OrderItems (Itens do Pedido): Cada item de pedido refere-se a um produto específico. Essa tabela inclui a quantidade, o preço unitário e o preço total calculado automaticamente.
+Principais Conceitos Utilizados
+Chaves Primárias (PRIMARY KEY): Garante que cada registro em uma tabela tenha um identificador único. Exemplo: customer_id na tabela Customers.
+Chaves Estrangeiras (FOREIGN KEY): Cria relações entre tabelas, assegurando a integridade referencial. Exemplo: customer_id na tabela Orders refere-se ao customer_id na tabela Customers. Também usamos ON DELETE CASCADE para excluir automaticamente os registros relacionados em cascata.
+Índices: Ao definir colunas como PRIMARY KEY, FOREIGN KEY, ou UNIQUE, índices são criados automaticamente, otimizando a consulta dessas colunas.
+
+Constraints (Restrições):
+NOT NULL: Garante que a coluna não aceite valores nulos.
+UNIQUE: Garante que os valores em uma coluna sejam únicos (como no caso do email do cliente).
+DEFAULT: Define um valor padrão caso nenhum valor seja inserido, como em created_at.
+CHECK: Define uma condição que os dados devem obedecer. Exemplo: uma quantidade não pode ser negativa (não foi usado explicitamente no código acima, mas pode ser implementado).
+Colunas Calculadas (AS ... STORED): A coluna total_price em OrderItems é calculada automaticamente com base na quantidade e no preço unitário. Isso facilita consultas e garante consistência nos dados.
+Auto Increment (AUTO_INCREMENT): Garante que o valor da chave primária seja gerado automaticamente a cada novo registro, como visto em customer_id, product_id, order_id, e order_item_id.*/
