@@ -9,6 +9,9 @@ FROM Products p
 JOIN OrderItems oi ON p.product_id = oi.product_id
 GROUP BY p.product_id, p.product_name;
 
+/*Facilita o acesso a informações agregadas sobre vendas totais por produto. 
+A View resume a quantidade e o valor de vendas de cada produto, com base nos itens dos pedidos.*/
+
 -- 2.View que retorna o total de pedidos e o valor total gasto por cliente
 CREATE VIEW CustomerOrderSummary AS
 SELECT 
@@ -20,6 +23,9 @@ SELECT
 FROM Customers c
 JOIN Orders o ON c.customer_id = o.customer_id
 GROUP BY c.customer_id, c.first_name, c.last_name;
+
+/*Oferece um resumo por cliente, incluindo o número de pedidos feitos e o valor total gasto, útil para analisar a 
+fidelidade do cliente e seu comportamento de compra.*/
 
 -- 3.View que retorna as vendas mensais por produto
 CREATE VIEW MonthlyProductSales AS
@@ -34,6 +40,9 @@ JOIN OrderItems oi ON p.product_id = oi.product_id
 JOIN Orders o ON oi.order_id = o.order_id
 GROUP BY p.product_id, p.product_name, order_month;
 
+/*Agrega as vendas de produtos por mês, permitindo que você consulte facilmente as vendas mensais de cada produto. 
+Pode ser útil em relatórios temporais e análises de sazonalidade.*/
+
 -- 4.View que retorna o total de vendas por categoria de produto
 CREATE VIEW CategorySalesSummary AS
 SELECT 
@@ -43,6 +52,8 @@ SELECT
 FROM Products p
 JOIN OrderItems oi ON p.product_id = oi.product_id
 GROUP BY p.product_category;
+
+/*Útil para obter um resumo de vendas por categoria de produto, permitindo uma visão agregada das vendas por tipo de produto.*/
 
 -- 5.View que retorna o total de vendas por cliente e por produto
 CREATE VIEW CustomerProductSales AS
@@ -60,6 +71,9 @@ JOIN OrderItems oi ON o.order_id = oi.order_id
 JOIN Products p ON oi.product_id = p.product_id
 GROUP BY c.customer_id, c.first_name, c.last_name, p.product_id, p.product_name;
 
+/*Oferece uma visão detalhada das compras de cada cliente por produto. 
+É útil para analisar o comportamento de compra do cliente em relação a produtos específicos.*/
+
 -- 6.View que retorna o total acumulado de vendas por produto
 CREATE VIEW CumulativeProductSales AS
 SELECT 
@@ -73,6 +87,9 @@ JOIN OrderItems oi ON p.product_id = oi.product_id
 JOIN Orders o ON oi.order_id = o.order_id
 GROUP BY p.product_id, p.product_name, o.order_date;
 
+/*Permite observar o total acumulado de vendas de cada produto ao longo do tempo, o que pode ser útil para visualizar o 
+crescimento das vendas de um produto em períodos longos.*/
+
 -- 7.View que retorna o total de pedidos e o valor de vendas por mês
 CREATE VIEW MonthlyOrderSummary AS
 SELECT 
@@ -81,6 +98,8 @@ SELECT
     SUM(o.total_amount) AS total_sales
 FROM Orders o
 GROUP BY order_month;
+
+/*Útil para relatórios de desempenho mensal de pedidos. Ela mostra quantos pedidos foram feitos e o total de vendas em cada mês.*/
 
 -- 8.View que retorna produtos que nunca foram vendidos
 CREATE VIEW UnsoldProducts AS
