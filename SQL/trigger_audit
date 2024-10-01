@@ -1,0 +1,39 @@
+CREATE TRIGGER nome_do_trigger
+BEFORE | AFTER INSERT | UPDATE | DELETE
+ON nome_da_tabela
+FOR EACH ROW
+BEGIN
+
+END;
+
+-- Criando a tabela de usuários
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100),
+    email VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Criando a tabela de auditoria
+CREATE TABLE audit_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action VARCHAR(100),
+    action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+--Criar trigger que insira automaticamente um registro na tabela audit_log toda vez que um novo usuário for inserido na tabela users.
+CREATE TRIGGER after_user_insert
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (user_id, action) 
+    VALUES (NEW.id, 'Usuário criado');
+END;
+
+-- Inserindo um novo usuário
+INSERT INTO users (nome, email) 
+VALUES ('Victoria Dionizio', 'victoriadionizio@example.com');
+
+-- Verificando o log de auditoria
+SELECT * FROM audit_log;
