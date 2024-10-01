@@ -1,0 +1,102 @@
+--Criação de Tabela com Constraints
+CREATE TABLE Customers (
+    customer_id INT PRIMARY KEY,              
+    first_name VARCHAR(50) NOT NULL,         
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE,                
+    birth_date DATE CHECK (birth_date <= CURDATE()), 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Orders (
+    order_id INT PRIMARY KEY,
+    customer_id INT,
+    order_date DATE NOT NULL,
+    total_amount DECIMAL(10, 2) CHECK (total_amount >= 0), 
+    CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES Customers(customer_id) 
+);
+
+-- Criação de trigger para validar inserção de pedidos
+CREATE TRIGGER validate_order_amount
+BEFORE INSERT ON Orders
+FOR EACH ROW
+BEGIN
+   
+    IF NEW.total_amount <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Total do pedido deve ser positivo.';
+    END IF;
+END;
+
+/*O trigger é executado antes de um novo pedido ser inserido. Caso a condição não seja satisfeita (total_amount <= 0),
+a inserção é cancelada e uma mensagem de erro personalizada é exibida.*/
+
+-- Stored Procedure para inserir um novo pedido e validar os dados
+DELIMITER $$
+
+CREATE PROCEDURE CreateOrder (
+    IN p_customer_id INT, 
+    IN p_total_amount DECIMAL(10, 2),
+    IN p_order_date DATE
+)
+BEGIN
+    
+    IF NOT EXISTS (SELECT 1 FROM Customers WHERE customer_id = p_customer_id) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cliente não encontrado.';
+    END IF;
+
+    -- Verifica se o total do pedido é válido
+    IF p_total_amount <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Total do pedido deve ser positivo.';
+    END IF;
+
+    -- Insere o pedido caso as validações passem
+    INSERT INTO Orders (customer_id, total_amount, order_date)
+    VALUES (p_customer_id, p_total_amount, p_order_date);
+END $$
+
+DELIMITER ;
+
+/*A procedure primeiro valida se o cliente existe. Se não existir, lança um erro.
+Em seguida, valida se o valor total do pedido é maior que zero.
+Caso todas as validações passem, o pedido é inserido.*/
+
+-- Teste para identificar emails duplicados na tabela de clientes
+SELECT email, COUNT(*)
+FROM Customers
+GROUP BY email
+HAVING COUNT(*) > 1;
+
+-- Teste para encontrar pedidos com chaves estrangeiras inválidas (clientes inexistentes)
+SELECT o.order_id
+FROM Orders o
+LEFT JOIN Customers c ON o.customer_id = c.customer_id
+WHERE c.customer_id IS NULL;
+
+-- Teste para verificar valores negativos no total dos pedidos
+SELECT *
+FROM Orders
+WHERE total_amount < 0;
+
+-- Verificar se o total de vendas em Orders é igual ao somatório em OrderItems
+SELECT 
+    (SELECT SUM(total_amount) FROM Orders) AS total_orders,
+    (SELECT SUM(quantity * unit_price) FROM OrderItems) AS total_items;
+-- Testar performance de uma consulta de vendas por cliente
+EXPLAIN SELECT c.customer_id, c.first_name, c.last_name, SUM(o.total_amount)
+FROM Customers c
+JOIN Orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id;
+
+-- Regra de negócio para verificar se o desconto aplicado não é maior que 20%
+CREATE TRIGGER validate_discount
+BEFORE INSERT ON OrderItems
+FOR EACH ROW
+BEGIN
+    IF NEW.discount > 0.2 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Desconto não pode ser maior que 20%.';
+    END IF;
+END;
