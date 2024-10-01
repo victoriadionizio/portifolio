@@ -1,0 +1,30 @@
+from airflow import DAG
+from airflow.operators.mysql_operator import MySqlOperator
+from airflow.operators.python_operator import PythonOperator
+from airflow.operators.snowflake_operator import SnowflakeOperator
+from datetime import datetime
+
+def transform_data():
+    # Função para transformar os dados extraídos
+    print("Transformando os dados...")
+
+with DAG(dag_id="etl_airflow_example", start_date=datetime(2023, 1, 1), schedule_interval="@daily") as dag:
+
+    extract_task = MySqlOperator(
+        task_id='extract_data',
+        sql='SELECT * FROM vendas',
+        mysql_conn_id='mysql_default'
+    )
+
+    transform_task = PythonOperator(
+        task_id='transform_data',
+        python_callable=transform_data
+    )
+
+    load_task = SnowflakeOperator(
+        task_id='load_data',
+        sql='INSERT INTO vendas_snowflake SELECT * FROM staging_vendas',
+        snowflake_conn_id='snowflake_default'
+    )
+
+    extract_task >> transform_task >> load_task
