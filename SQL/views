@@ -1,1 +1,94 @@
+--1.View que retorna o total de vendas por produto, incluindo a quantidade total e o valor total
+CREATE VIEW ProductSalesSummary AS
+SELECT 
+    p.product_id,
+    p.product_name,
+    SUM(oi.quantity) AS total_quantity_sold,
+    SUM(oi.total_price) AS total_sales_value
+FROM Products p
+JOIN OrderItems oi ON p.product_id = oi.product_id
+GROUP BY p.product_id, p.product_name;
 
+-- 2.View que retorna o total de pedidos e o valor total gasto por cliente
+CREATE VIEW CustomerOrderSummary AS
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    COUNT(o.order_id) AS total_orders,
+    SUM(o.total_amount) AS total_spent
+FROM Customers c
+JOIN Orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;
+
+-- 3.View que retorna as vendas mensais por produto
+CREATE VIEW MonthlyProductSales AS
+SELECT 
+    p.product_id,
+    p.product_name,
+    DATE_FORMAT(o.order_date, '%Y-%m') AS order_month,
+    SUM(oi.quantity) AS total_quantity_sold,
+    SUM(oi.total_price) AS total_sales_value
+FROM Products p
+JOIN OrderItems oi ON p.product_id = oi.product_id
+JOIN Orders o ON oi.order_id = o.order_id
+GROUP BY p.product_id, p.product_name, order_month;
+
+-- 4.View que retorna o total de vendas por categoria de produto
+CREATE VIEW CategorySalesSummary AS
+SELECT 
+    p.product_category,
+    SUM(oi.quantity) AS total_quantity_sold,
+    SUM(oi.total_price) AS total_sales_value
+FROM Products p
+JOIN OrderItems oi ON p.product_id = oi.product_id
+GROUP BY p.product_category;
+
+-- 5.View que retorna o total de vendas por cliente e por produto
+CREATE VIEW CustomerProductSales AS
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    p.product_id,
+    p.product_name,
+    SUM(oi.quantity) AS total_quantity_purchased,
+    SUM(oi.total_price) AS total_spent_on_product
+FROM Customers c
+JOIN Orders o ON c.customer_id = o.customer_id
+JOIN OrderItems oi ON o.order_id = oi.order_id
+JOIN Products p ON oi.product_id = p.product_id
+GROUP BY c.customer_id, c.first_name, c.last_name, p.product_id, p.product_name;
+
+-- 6.View que retorna o total acumulado de vendas por produto
+CREATE VIEW CumulativeProductSales AS
+SELECT 
+    p.product_id,
+    p.product_name,
+    o.order_date,
+    SUM(oi.total_price) AS daily_sales,
+    SUM(SUM(oi.total_price)) OVER (PARTITION BY p.product_id ORDER BY o.order_date) AS cumulative_sales
+FROM Products p
+JOIN OrderItems oi ON p.product_id = oi.product_id
+JOIN Orders o ON oi.order_id = o.order_id
+GROUP BY p.product_id, p.product_name, o.order_date;
+
+-- 7.View que retorna o total de pedidos e o valor de vendas por mês
+CREATE VIEW MonthlyOrderSummary AS
+SELECT 
+    DATE_FORMAT(o.order_date, '%Y-%m') AS order_month,
+    COUNT(o.order_id) AS total_orders,
+    SUM(o.total_amount) AS total_sales
+FROM Orders o
+GROUP BY order_month;
+
+-- 8.View que retorna produtos que nunca foram vendidos
+CREATE VIEW UnsoldProducts AS
+SELECT 
+    p.product_id,
+    p.product_name,
+    p.price
+FROM Products p
+LEFT JOIN OrderItems oi ON p.product_id = oi.product_id
+WHERE oi.order_item_id IS NULL;
+/* Permite identificar produtos no catálogo que ainda não foram vendidos, facilitando a análise de desempenho de produtos.*/
